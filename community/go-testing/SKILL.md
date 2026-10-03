@@ -18,6 +18,25 @@ Load this skill when:
 - Using testify assertions or suite patterns
 - Setting up test fixtures, mocks, or test containers
 
+## Critical Patterns
+
+- **Table-driven tests are the default**: never duplicate test logic across
+  separate test functions — put cases in a `[]struct` table.
+- **`require` vs `assert`**: `require` stops the test immediately (preconditions);
+  `assert` continues but reports (assertions).
+- **Suites for shared setup**: use a testify suite (`SetupSuite`, `TearDownSuite`,
+  `SetupTest`) when tests share setup and teardown.
+- **Automatic cleanup**: mark helpers with `t.Helper()` and use `t.TempDir()` /
+  `t.Cleanup()`; never rely on manual cleanup.
+- **Test behavior, not internals**: assert on exported behavior (e.g.,
+  `DisplayName()`), never on private fields.
+- **No `init()` in tests**: it runs for every test in the package, including
+  unrelated ones.
+- **TUI logic without rendering**: drive `Model.Update()` with `tea.Msg` values and
+  assert on the returned model and command.
+- **Real dependencies via test containers**: use testcontainers-go with a
+  listening-port wait strategy and `t.Cleanup` for termination.
+
 ## Table-Driven Tests (REQUIRED)
 
 Always use table-driven tests for multiple test cases. Never duplicate test logic.
@@ -335,6 +354,124 @@ go test -fuzz=FuzzParseJSON      # fuzzing
 go test -cover                   # coverage %
 go test -race                    # race detector
 go test -count=1 ./...           # disable cache
+```
+
+## Code Examples
+
+### Example 1: Table-Driven Test (Testify)
+
+```go
+package pricing
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// CalculateDiscount applies a volume discount to a line total.
+func CalculateDiscount(price float64, quantity int) float64 {
+	switch {
+	case quantity >= 20:
+		return price * float64(quantity) * 20 / 100
+	case quantity >= 10:
+		return price * float64(quantity) * 10 / 100
+	default:
+		return 0
+	}
+}
+
+func TestCalculateDiscount(t *testing.T) {
+	tests := []struct {
+		name     string
+		price    float64
+		quantity int
+		want     float64
+	}{
+		{"no discount under 10", 100.0, 5, 0},
+		{"10% discount at 10", 100.0, 10, 100.0},
+		{"20% discount at 20", 100.0, 20, 400.0},
+		{"zero quantity", 100.0, 0, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CalculateDiscount(tt.price, tt.quantity)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+```
+
+### Example 2: Bubbletea TUI Test (No Rendering)
+
+```go
+package ui
+
+import (
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/stretchr/testify/assert"
+)
+
+// Minimal model matching the update/view logic under test.
+type model struct {
+	cursor int
+	items  []string
+}
+
+func InitialModel() model {
+	return model{items: []string{"Item 1", "Item 2"}}
+}
+
+func (m model) Init() tea.Cmd { return nil }
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyRunes:
+			if msg.String() == "j" {
+				m.cursor++
+			}
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	out := ""
+	for i, item := range m.items {
+		if i == m.cursor {
+			out += "> " + item + "\n"
+		} else {
+			out += "  " + item + "\n"
+		}
+	}
+	return out
+}
+
+func TestModel_KeyPress(t *testing.T) {
+	m := InitialModel()
+
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	updated, cmd := m.Update(msg)
+
+	newModel := updated.(model)
+	assert.Equal(t, 1, newModel.cursor)
+	assert.Nil(t, cmd)
+}
+
+func TestModel_View(t *testing.T) {
+	m := InitialModel()
+
+	view := m.View()
+	assert.Contains(t, view, "Item 1")
+	assert.Contains(t, view, ">") // cursor indicator
+}
 ```
 
 ## References

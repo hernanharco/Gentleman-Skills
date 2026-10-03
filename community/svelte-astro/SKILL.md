@@ -18,6 +18,26 @@ Load this skill when:
 - Integrating Svelte components in Astro
 - Working with `.svelte` or `.astro` files
 
+## Critical Patterns
+
+- **Svelte 5 runes are required**: use `$state`, `$derived`, and `$effect`; never
+  `$:` or plain `let` for reactive state (Svelte 4 syntax is deprecated).
+- **Props via `$props()`**: destructure with defaults; never `export let`.
+- **Two-way binding with `bind:`**: `bind:value`, `bind:checked`, and
+  `bind:selected` on form controls.
+- **Hydrate only interactive Astro components**: use `client:load`,
+  `client:idle`, `client:visible`, `client:media`, or `client:only` — never put
+  `client:*` on server-rendered HTML.
+- **File-based routing**: `+page.svelte`, `+page.server.ts`, `+layout.svelte`,
+  dynamic `[slug]` segments, and `+error.svelte`.
+- **Throw from load functions**: `throw error(404, 'Post not found')` when data is
+  missing in `+page.server.ts`.
+- **Form actions with progressive enhancement**: return `fail(400, {...})` for
+  validation errors, `redirect(303, ...)` on success, and use `use:enhance` on
+  the form.
+- **Content collections with schemas**: define collections via `defineCollection`
+  and a zod schema, then render posts with `getCollection` + `post.render()`.
+
 ## Svelte 5 Runes (REQUIRED)
 
 Svelte 5 uses runes instead of reactive declarations. Never use `$:` or `let` for reactive state.
@@ -341,6 +361,73 @@ const { Content } = await post.render();
 
 <!-- GOOD -->
 <Counter client:load />
+```
+
+## Code Examples
+
+### Example 1: Svelte 5 Component (Runes, Props, Bindings)
+
+```svelte
+<!-- src/lib/Counter.svelte -->
+<script lang="ts">
+  let { title = 'Counter', start = 0 } = $props();
+
+  let count = $state(start);
+  let label = $state('');
+  let doubled = $derived(count * 2);
+
+  $effect(() => {
+    console.log('Count changed:', count);
+  });
+
+  function increment() {
+    count++;
+  }
+</script>
+
+<h1>{title}</h1>
+
+<!-- Two-way binding -->
+<input type="number" bind:value={count} />
+<input bind:value={label} placeholder="Label" />
+
+<button onclick={increment}>Increment</button>
+
+<p>{label ? `${label}: ` : ''}{count} (doubled: {doubled})</p>
+```
+
+### Example 2: Astro Page with an Embedded Svelte Component
+
+```astro
+---
+// src/pages/index.astro
+import Layout from '../layouts/Layout.astro';
+import Card from '../components/Card.astro';
+import Counter from '../components/Counter.svelte';
+
+const posts = await fetch('https://api.example.com/posts').then((r) => r.json());
+---
+
+<Layout title="Home">
+  <h1>Welcome</h1>
+
+  <!-- Only interactive components get hydrated -->
+  <Counter title="Total posts" start={posts.length} client:load />
+
+  <div class="grid">
+    {posts.map((post) => (
+      <Card title={post.title} body={post.body} />
+    ))}
+  </div>
+</Layout>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+</style>
 ```
 
 ## References
