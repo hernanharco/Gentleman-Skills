@@ -1,3 +1,6 @@
+# scroll-3d-animation.ts
+
+```typescript
 /**
  * scroll-3d-animation.ts
  *
@@ -280,3 +283,4 @@ export function staggerScrollAnimation(
     return gsap.to(mesh, vars);
   });
 }
+```

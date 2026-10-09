@@ -1,3 +1,6 @@
+# smooth-scroll-setup.ts
+
+```typescript
 /**
  * smooth-scroll-setup.ts
  *
@@ -221,3 +224,4 @@ export function setupImmersiveScene(containerId: string) {
     },
   };
 }
+```

@@ -390,7 +390,7 @@ npm create vite@latest . -- --template vanilla-ts
 
 ## Resources
 
-- **Templates**: See [assets/](assets/) for ready-to-use code templates
+- **Templates**: ready-to-use code templates in [assets/](assets/) — [`smooth-scroll-setup.md`](assets/smooth-scroll-setup.md), [`scroll-3d-animation.md`](assets/scroll-3d-animation.md), [`breakout-frame.md`](assets/breakout-frame.md), [`breakout-project.md`](assets/breakout-project.md) (code lives in fenced blocks per community policy)
 - **Three.js Journey**: https://threejs-journey.com/ — BEST course (Bruno Simon)
 - **GSAP ScrollTrigger**: https://gsap.com/docs/v3/Plugins/ScrollTrigger/
 - **Lenis docs**: https://github.com/studio-freight/lenis
