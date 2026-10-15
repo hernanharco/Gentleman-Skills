@@ -202,7 +202,7 @@ Test Model update logic without rendering.
 func TestModel_Init(t *testing.T) {
 	m := InitialModel()
 	cmd := m.Init()
-	assert.NotNil(t, cmd)
+	assert.Nil(t, cmd) // no startup command
 }
 
 func TestModel_KeyPress(t *testing.T) {
@@ -222,9 +222,13 @@ func TestModel_Quit(t *testing.T) {
 	msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 	updated, cmd := m.Update(msg)
 
-	_, ok := updated.(model)
-	assert.False(t, ok) // model replaced by quit
-	_ = cmd
+	// Update returns the same model; quitting is signalled by the command.
+	assert.Equal(t, m, updated)
+
+	if assert.NotNil(t, cmd) {
+		_, ok := cmd().(tea.QuitMsg)
+		assert.True(t, ok) // command produces tea.QuitMsg
+	}
 }
 
 func TestModel_View(t *testing.T) {
