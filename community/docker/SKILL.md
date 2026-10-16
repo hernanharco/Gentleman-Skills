@@ -30,6 +30,10 @@ Load this skill when:
   (e.g., `node:22-alpine`, not `node:latest`).
 - **Run as a non-root user**: create a dedicated user/group and set `USER` in the
   final stage.
+- **The Docker socket is root-equivalent**: `/var/run/docker.sock` lets anyone
+  talking to it start containers and control the daemon host. Don't mount it
+  into containers that don't need it, and remember that adding a user to the
+  `docker` group is effectively granting root on that host.
 - **No secrets in the image**: pass credentials at runtime (`-e` or Docker
   secrets), never bake them into `ENV`.
 - **Health checks gate dependencies**: define a healthcheck on dependent services
