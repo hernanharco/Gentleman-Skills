@@ -1,7 +1,7 @@
 ---
 name: svelte-astro
 description: >
-  Svelte 5 and Astro 5 patterns for modern web apps.
+  Svelte 5 and Astro 7 patterns for modern web apps.
   Trigger: When writing Svelte components, when building with Astro, when using SvelteKit, when working with .svelte or .astro files.
 license: Apache-2.0
 metadata:
@@ -13,7 +13,7 @@ metadata:
 
 Load this skill when:
 - Writing Svelte 5 components with runes ($state, $derived, $effect)
-- Building Astro 5 pages and components
+- Building Astro 7 pages and components
 - Using SvelteKit for routing and SSR
 - Integrating Svelte components in Astro
 - Working with `.svelte` or `.astro` files
@@ -35,8 +35,10 @@ Load this skill when:
 - **Form actions with progressive enhancement**: return `fail(400, {...})` for
   validation errors, `redirect(303, ...)` on success, and use `use:enhance` on
   the form.
-- **Content collections with schemas**: define collections via `defineCollection`
-  and a zod schema, then render posts with `getCollection` + `post.render()`.
+- **Content collections with loaders and schemas**: define collections in
+  `src/content.config.ts` via `defineCollection` with a `loader` (e.g. `glob()`)
+  and a zod schema, then query with `getCollection` and render with
+  `render(entry)` from `astro:content`.
 
 ## Svelte 5 Runes (REQUIRED)
 
@@ -193,7 +195,8 @@ import Counter from '../components/Counter.svelte';
 - `client:idle` — hydrate when browser is idle
 - `client:visible` — hydrate when visible
 - `client:media` — hydrate when media query matches
-- `client:only` — only render on client (skip SSR)
+- `client:only="svelte"` — only render on client (skip SSR); the framework
+  value is required
 
 ## SvelteKit Routing
 
@@ -290,14 +293,16 @@ export const actions: Actions = {
 ## Astro Content Collections
 
 ```typescript
-// src/content/config.ts
-import { defineCollection, z } from 'astro:content';
+// src/content.config.ts
+import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
 
 const blog = defineCollection({
-  type: 'content',
+  loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
   schema: z.object({
     title: z.string(),
-    date: z.date(),
+    date: z.coerce.date(),
     tags: z.array(z.string()).default([]),
   }),
 });
@@ -308,18 +313,18 @@ export const collections = { blog };
 ```astro
 ---
 // src/pages/blog/[...slug].astro
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog');
   return posts.map(post => ({
-    params: { slug: post.slug },
+    params: { slug: post.id },
     props: { post },
   }));
 }
 
 const { post } = Astro.props;
-const { Content } = await post.render();
+const { Content } = await render(post);
 ---
 
 <article>
@@ -435,4 +440,5 @@ const posts = await fetch('https://api.example.com/posts').then((r) => r.json())
 - [Svelte 5 docs](https://svelte.dev/docs)
 - [SvelteKit docs](https://kit.svelte.dev/docs)
 - [Astro docs](https://docs.astro.build/)
+- [Astro upgrade guide](https://docs.astro.build/en/upgrade-astro/)
 - [Astro Svelte integration](https://docs.astro.build/en/guides/integrations-guide/svelte/)
